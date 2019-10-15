@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.29306.81
+VisualStudioVersion = 16.0.29409.12
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "Trabalho 1 MEF P", "Trabalho 1 MEF P.vfproj", "{895CD18E-54FC-46FD-B539-094AB5AAD965}"
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "Trabalho_1_MEF P", "Trabalho_1_MEF P.vfproj", "{895CD18E-54FC-46FD-B539-094AB5AAD965}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +26,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E3CE3709-7A33-4E32-9096-D901C1E64F1D}
+		SolutionGuid = {1108ED09-D343-47A4-BBF6-F1BC018D79D2}
 	EndGlobalSection
 EndGlobal
