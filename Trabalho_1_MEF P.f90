@@ -25,7 +25,7 @@
     integer, allocatable, dimension (:,:) :: inc
 
     open (15,FILE="entrada.txt",STATUS="OLD")
-    read(15,*) !Num de nós, Num de elem, Num passos, tolerância, Num de forças aplicadas, Num de restrições
+    read(15,*) !Num de nós, Num de elem, Num passos, tolerância, Num de forças aplicadas, Num de nós restritos
     read(15,*) nnos, nel, nt, tol, nnoscar, nnres
     read(15,*) !No, X1, X2, X3
 
@@ -102,140 +102,41 @@
         xaux(3*i) = x(i,3)
     end do
     
-    normx = norm2(xaux)
+    normx = abs(norm2(xaux))
     
-    
-        !Cálculo da Matriz Hessiana
-     
-        do k=1,nel
-        
-            k1=inc(k,1)
-            k2=inc(k,2)
-        
-            l0=((x(k1,1)-x(k2,1))**2 + (x(k1,2)-x(k2,2))**2 + (x(k1,3)-x(k2,3))**2)**0.5
-            lf=((y(k1,1)-y(k2,1))**2 + (y(k1,2)-y(k2,2))**2 + (y(k1,3)-y(k2,3))**2)**0.5
-    
-            K_svk = prop(k,1)
-            s_svk(k) = (((lf*lf)/(l0*l0))-1)*0.5*prop(k,1)
-        
-            aux = (prop(k,2)/l0)   
-        
-        
-            do i=1,3
-                    HEX(i,1) = aux*(K_svk*(y(k2,i)-y(k1,i))*(y(k2,1)-y(k1,1)))/(l0*l0) 
-                    HEX(i,2) = aux*(K_svk*(y(k2,i)-y(k1,i))*(y(k2,2)-y(k1,2)))/(l0*l0)
-                    HEX(i,3) = aux*(K_svk*(y(k2,i)-y(k1,i))*(y(k2,3)-y(k1,3)))/(l0*l0)
-                    HEX(i,4) = -aux*(K_svk*(y(k2,i)-y(k1,i))*(y(k2,1)-y(k1,1)))/(l0*l0)
-                    HEX(i,5) = -aux*(K_svk*(y(k2,i)-y(k1,i))*(y(k2,2)-y(k1,2)))/(l0*l0)
-                    HEX(i,6) = -aux*(K_svk*(y(k2,i)-y(k1,i))*(y(k2,3)-y(k1,3)))/(l0*l0)                
-            end do    
-        
-            do i=4,6
-                    HEX(i,1) = -aux*(K_svk*(y(k2,i-3)-y(k1,i-3))*(y(k2,1)-y(k1,1)))/(l0*l0) 
-                    HEX(i,2) = -aux*(K_svk*(y(k2,i-3)-y(k1,i-3))*(y(k2,2)-y(k1,2)))/(l0*l0)
-                    HEX(i,3) = -aux*(K_svk*(y(k2,i-3)-y(k1,i-3))*(y(k2,3)-y(k1,3)))/(l0*l0)
-                    HEX(i,4) = aux*(K_svk*(y(k2,i-3)-y(k1,i-3))*(y(k2,1)-y(k1,1)))/(l0*l0)
-                    HEX(i,5) = aux*(K_svk*(y(k2,i-3)-y(k1,i-3))*(y(k2,2)-y(k1,2)))/(l0*l0)
-                    HEX(i,6) = aux*(K_svk*(y(k2,i-3)-y(k1,i-3))*(y(k2,3)-y(k1,3)))/(l0*l0)                
-            end do   
-        
-            HEX(1,1) = HEX(1,1) + aux*s_svk(k)
-            HEX(2,2) = HEX(2,2) + aux*s_svk(k)
-            HEX(3,3) = HEX(3,3) + aux*s_svk(k)
-            HEX(4,4) = HEX(4,4) + aux*s_svk(k)
-            HEX(5,5) = HEX(5,5) + aux*s_svk(k)
-            HEX(6,6) = HEX(6,6) + aux*s_svk(k)
-        
-            HEXg(3*k1-2:3*k1, 3*k1-2:3*k1) = HEXg(3*k1-2:3*k1, 3*k1-2:3*k1) + HEX(1:3,1:3)
-            HEXg(3*k1-2:3*k1, 3*k2-2:3*k2) = HEXg(3*k1-2:3*k1, 3*k2-2:3*k2) + HEX(1:3,4:6)
-            HEXg(3*k2-2:3*k2, 3*k1-2:3*k1) = HEXg(3*k2-2:3*k2, 3*k1-2:3*k1) + HEX(4:6,1:3)
-            HEXg(3*k2-2:3*k2, 3*k2-2:3*k2) = HEXg(3*k2-2:3*k2, 3*k2-2:3*k2) + HEX(4:6,4:6)
-    
-        end do
-    
-        !Comprimento incial e final dos elementos e forças internas
-        i=0
-        fint_svk = 0
-        do i=1,nel
-		
-		    k1=inc(i,1)
-            k2=inc(i,2)
-		
-            l0=((x(k1,1)-x(k2,1))**2 + (x(k1,2)-x(k2,2))**2 + (x(k1,3)-x(k2,3))**2)**0.5
-            lf=((y(k1,1)-y(k2,1))**2 + (y(k1,2)-y(k2,2))**2 + (y(k1,3)-y(k2,3))**2)**0.5
-            E(i)=(((lf*lf)/(l0*l0))-1)/2
-            s_svk(i) = E(i)*prop(i,1)
-            ue_svk(i) = (E(i)**2)*prop(i,1)/2
-            fn_svk(i) = s_svk(i)*prop(i,2)*lf/l0
-        
-            if (res(3*k1-2)==1) then
-               lf=((y(k1,1) + Rnodais(3*k1-2)-y(k2,1))**2 + (y(k1,2)-y(k2,2))**2 + (y(k1,3)-y(k2,3))**2)**0.5 
-               E(i)=(((lf*lf)/(l0*l0))-1)/2
-               s_svk(i) = E(i)*prop(i,1)
-               ue_svk(i) = (E(i)**2)*prop(i,1)/2
-               Fnodais(3*k1-2) = -s_svk(i)*prop(i,2)*lf/l0
-            else if (res(3*k1-1)==1) then
-               lf=((y(k1,1)-y(k2,1))**2 + (y(k1,2)+Rnodais(3*k1-1)-y(k2,2))**2 + (y(k1,3)-y(k2,3))**2)**0.5
-               E(i)=(((lf*lf)/(l0*l0))-1)/2
-               s_svk(i) = E(i)*prop(i,1)
-               ue_svk(i) = (E(i)**2)*prop(i,1)/2
-               Fnodais(3*k1-1) = -s_svk(i)*prop(i,2)*lf/l0
-            else if (res(3*k1)==1) then
-               lf=((y(k1,1)-y(k2,1))**2 + (y(k1,2)-y(k2,2))**2 + (y(k1,3) + Rnodais(3*k1)-y(k2,3))**2)**0.5 
-               E(i)=(((lf*lf)/(l0*l0))-1)/2
-               s_svk(i) = E(i)*prop(i,1)
-               ue_svk(i) = (E(i)**2)*prop(i,1)/2
-               Fnodais(3*k1) = -s_svk(i)*prop(i,2)*lf/l0
-            else if (res(3*k2-2)==1) then
-               lf=((y(k1,1)-Rnodais(3*k2-2)-y(k2,1))**2 + (y(k1,2)-y(k2,2))**2 + (y(k1,3)-y(k2,3))**2)**0.5 
-               E(i)=(((lf*lf)/(l0*l0))-1)/2
-               s_svk(i) = E(i)*prop(i,1)
-               ue_svk(i) = (E(i)**2)*prop(i,1)/2
-               Fnodais(3*k2-2) = -s_svk(i)*prop(i,2)*lf/l0
-            else if (res(3*k2-1)==1) then
-                lf=((y(k1,1)-y(k2,1))**2 + (y(k1,2)-Rnodais(3*k2-1)-y(k2,2))**2 + (y(k1,3)-y(k2,3))**2)**0.5
-                E(i)=(((lf*lf)/(l0*l0))-1)/2
-                s_svk(i) = E(i)*prop(i,1)
-                ue_svk(i) = (E(i)**2)*prop(i,1)/2
-                Fnodais(3*k2-1) = -s_svk(i)*prop(i,2)*lf/l0
-            else if (res(3*k2)==1) then
-                lf=((y(k1,1)-y(k2,1))**2 + (y(k1,2)-y(k2,2))**2 + (y(k1,3)-Rnodais(3*k2)-y(k2,3))**2)**0.5
-                E(i)=(((lf*lf)/(l0*l0))-1)/2
-                s_svk(i) = E(i)*prop(i,1)
-                ue_svk(i) = (E(i)**2)*prop(i,1)/2
-                Fnodais(3*k2) = -s_svk(i)*prop(i,2)*lf/l0
-            end if
-                   
-
-            do k=1,3
-                fint_svk(k1*3-3+k) = fint_svk(k1*3-3+k) + prop(i,2)*s_svk(i)*(-1)*(y(k2,dir)-y(k1,dir))/l0
-                fint_svk(k2*3-3+k) = fint_svk(k2*3-3+k) + prop(i,2)*s_svk(i)*(1)*(y(k2,dir)-y(k1,dir))/l0
-            end do
-
-        end do
-    
-        !Desbalanceamento Mecânico
-        g = fint_svk - Fnodais
+    i=0
         
 !Início Newton-Raphson
     iter=0
     do 
         !Cálculo da Matriz Hessiana
-     
+        fint_svk = 0
+        HEX=0 
+        HEXg=0
         do k=1,nel
         
             k1=inc(k,1)
             k2=inc(k,2)
         
-            l0=((x(k1,1)-x(k2,1))**2 + (x(k1,2)-x(k2,2))**2 + (x(k1,3)-x(k2,3))**2)**0.5
-            lf=((y(k1,1)-y(k2,1))**2 + (y(k1,2)-y(k2,2))**2 + (y(k1,3)-y(k2,3))**2)**0.5
-    
+            l0=((x(k1,1)-x(k2,1))*(x(k1,1)-x(k2,1)) + (x(k1,2)-x(k2,2))*(x(k1,2)-x(k2,2)) + (x(k1,3)-x(k2,3))*(x(k1,3)-x(k2,3)))**0.5
+            lf=((y(k1,1)-y(k2,1))*(y(k1,1)-y(k2,1)) + (y(k1,2)-y(k2,2))*(y(k1,2)-y(k2,2)) + (y(k1,3)-y(k2,3))*(y(k1,3)-y(k2,3)))**0.5
+                
             K_svk = prop(k,1)
             s_svk(k) = (((lf*lf)/(l0*l0))-1)*0.5*prop(k,1)
         
             aux = (prop(k,2)/l0)   
-        
-        
+            
+            !Forças internas 
+                fint_svk(k1*3-2) =  fint_svk(k1*3-2) + prop(k,2)*s_svk(k)*(-1)*(y(k2,1)-y(k1,1))/l0
+                fint_svk(k1*3-1) = fint_svk(k1*3-1) + prop(k,2)*s_svk(k)*(-1)*(y(k2,2)-y(k1,2))/l0
+                fint_svk(k1*3) = fint_svk(k1*3) + prop(k,2)*s_svk(k)*(-1)*(y(k2,3)-y(k1,3))/l0
+            
+                fint_svk(k2*3-2) = fint_svk(k2*3-2) + prop(k,2)*s_svk(k)*(1)*(y(k2,1)-y(k1,1))/l0
+                fint_svk(k2*3-1) = fint_svk(k2*3-1) + prop(k,2)*s_svk(k)*(1)*(y(k2,2)-y(k1,2))/l0
+                fint_svk(k2*3) = fint_svk(k2*3) + prop(k,2)*s_svk(k)*(1)*(y(k2,3)-y(k1,3))/l0
+            
+            
+                
             do i=1,3
                     HEX(i,1) = aux*(K_svk*(y(k2,i)-y(k1,i))*(y(k2,1)-y(k1,1)))/(l0*l0) 
                     HEX(i,2) = aux*(K_svk*(y(k2,i)-y(k1,i))*(y(k2,2)-y(k1,2)))/(l0*l0)
@@ -261,32 +162,53 @@
             HEX(5,5) = HEX(5,5) + aux*s_svk(k)
             HEX(6,6) = HEX(6,6) + aux*s_svk(k)
         
-            HEXg(3*k1-2:3*k1, 3*k1-2:3*k1) = HEXg(3*k1-2:3*k1, 3*k1-2:3*k1) + HEX(1:3,1:3)
-            HEXg(3*k1-2:3*k1, 3*k2-2:3*k2) = HEXg(3*k1-2:3*k1, 3*k2-2:3*k2) + HEX(1:3,4:6)
-            HEXg(3*k2-2:3*k2, 3*k1-2:3*k1) = HEXg(3*k2-2:3*k2, 3*k1-2:3*k1) + HEX(4:6,1:3)
-            HEXg(3*k2-2:3*k2, 3*k2-2:3*k2) = HEXg(3*k2-2:3*k2, 3*k2-2:3*k2) + HEX(4:6,4:6)
-    
+            HEX(1,4) = HEX(1,4) - aux*s_svk(k)
+            HEX(2,5) = HEX(2,5) - aux*s_svk(k)
+            HEX(3,6) = HEX(3,6) - aux*s_svk(k)
+            HEX(4,1) = HEX(4,1) - aux*s_svk(k)
+            HEX(5,2) = HEX(5,2) - aux*s_svk(k)
+            HEX(6,3) = HEX(6,3) - aux*s_svk(k)
+            
+            
+            do i=1,3
+                do j=1,3
+                    HEXg(3*k1-3+i,3*k1-3+j) =  HEXg(3*k1-3+i,3*k1-3+j)  + HEX(i,j)
+                    HEXg(3*k1-3+i,3*k2-3+j) =  HEXg(3*k1-3+i,3*k2-3+j)  + HEX(i,j+3)                
+                    HEXg(3*k2-3+i,3*k1-3+j) =  HEXg(3*k2-3+i,3*k1-3+j)  + HEX(i+3,j)
+                    HEXg(3*k2-3+i,3*k2-3+j) =  HEXg(3*k2-3+i,3*k2-3+j)  + HEX(i+3,j+3)                
+                end do
+            end do
+            
+            !HEXg(3*k1-2:3*k1, 3*k1-2:3*k1) = HEXg(3*k1-2:3*k1, 3*k1-2:3*k1) + HEX(1:3,1:3)
+            !HEXg(3*k1-2:3*k1, 3*k2-2:3*k2) = HEXg(3*k1-2:3*k1, 3*k2-2:3*k2) + HEX(1:3,4:6)
+            !HEXg(3*k2-2:3*k2, 3*k1-2:3*k1) = HEXg(3*k2-2:3*k2, 3*k1-2:3*k1) + HEX(4:6,1:3)
+            !HEXg(3*k2-2:3*k2, 3*k2-2:3*k2) = HEXg(3*k2-2:3*k2, 3*k2-2:3*k2) + HEX(4:6,4:6)
+            !
         end do
         !Condições de contorno
-    
+        g = Fnodais - fint_svk
         do i=1,3*nnos
             if (res(i)==1) then
                 HEXg(i,:) = 0
                 HEXg(:,i) = 0
                 HEXg(i,i) = 1
+                g(i) = 0
             else
             end if
         end do
-    
-        ! Newton-Raphson
+        
+        ! Solução sistema        
         n = 3*nnos
+       
+        
+        
         ip=0
         i=0
-        g=-g
         j=1
     
         call dgesv(n,j,HEXg,n,ip,g,n,i)
-    
+        
+            
         do i=1,nnos
             dy(i,1) = g(3*i-2)
             dy(i,2) = g(3*i-1)
@@ -294,21 +216,22 @@
         end do
     
         y = y+dy
-        err = norm2(g)/normx
+        err = abs(norm2(g))/normx
         
         iter = iter + 1
         
-        print*, iter
+        print*, iter, g(20), err
         
-        if (err<=tol .or. iter>30) then 
+        if (err<=tol .or. iter>25) then 
             exit
         end if
+    
         
     end do
     
     u = y - x
     
-    print*, u
+    print*, u(7,2)
     !pause
     
     end program Trabalho1MEFP

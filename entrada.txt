@@ -63,7 +63,7 @@ EL, Elasticidade, Área
 22   10000    0.1
 23   10000    0.1
 No, Direção, Força
-7    2       1
+7    2       3
 No, R01 R02 R03
 1   1    1   1
 2   0    0   1
