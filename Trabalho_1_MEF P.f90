@@ -13,10 +13,9 @@
 !****************************************************************************
 
     program Trabalho1MEFP
-
     implicit none
 
-    integer(8) :: nnos, nel, nt, no, k, i, k1, k2, dir, j, nnoscar, n, nnres, iter, passo
+    integer(8) :: nnos, nel, nt, no, k, i, k1, k2, dir, j, nnoscar, n, nnres, iter, passo, tipo
     integer(8), allocatable, dimension(:) :: ip
     double precision :: tol, l0, lf, aux, K_svk, err, normx
     double precision, allocatable, dimension(:,:) :: HEX, HEXg
@@ -26,8 +25,8 @@
     double precision, allocatable, dimension(:,:,:) :: u
     
     open (15,FILE="entrada.txt",STATUS="OLD")
-    read(15,*) !Num de nós, Num de elem, Num passos, tolerância, Num de forças aplicadas, Num de nós restritos
-    read(15,*) nnos, nel, nt, tol, nnoscar, nnres
+    read(15,*) !Num de nós, Num de elem, Num passos, tolerância, Num de forças aplicadas, Num de nós restritos, Tipo de Anlálise (1 - estat, 2 - dinam)
+    read(15,*) nnos, nel, nt, tol, nnoscar, nnres, tipo
     read(15,*) !No, X1, X2, X3
 
     allocate (x(nnos,3), y(nnos,3), prop(nel,2), dy(nnos,3), u(nt,nnos,3))
