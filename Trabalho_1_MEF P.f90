@@ -24,8 +24,9 @@
     integer, allocatable, dimension (:,:) :: inc
     double precision, allocatable, dimension(:,:,:) :: u
     character(len=5):: texto
+    character(len=3):: ext, tostr
     
-    open (15,FILE="entrada_cupula.txt",STATUS="OLD")
+    open (15,FILE="entrada.txt",STATUS="OLD")
     read(15,*) !Num de nós, Num de elem, Num passos, tolerância, Num de forças aplicadas, Num de nós restritos, Tipo de Anlálise (1 - estat, 2 - dinam)
     read(15,*) nnos, nel, nt, tol, nnoscar, nnres, tipo
     read(15,*) !No, X1, X2, X3
@@ -221,7 +222,7 @@
         
             iter = iter + 1
         
-            print*, iter, g(20), err
+            !print*, iter
         
             if (err<=tol .or. iter>100) then 
                 exit
@@ -236,7 +237,8 @@
     
     ! Escrita de dados para visualização
     
-     open (25,FILE="saida_estatica.vtu",STATUS="REPLACE")
+          
+     open (25,FILE="saida0.vtu",STATUS="REPLACE")
     
 1     format(A,I0,A,I0,A)
 2     format(F0.6,1x,F0.6,1x,F0.6)     
@@ -297,60 +299,74 @@
      
      close(25)
      
-     open (35,FILE="deformada.vtu",STATUS="REPLACE")
+     do j=1,nt
+        
+        ext = tostr(j)
      
-     write (35,5) "<?xml version=""1.0""?>"
-     write (35,5) "<VTKFile type=""UnstructuredGrid"">"
-     write (35,5) "  <UnstructuredGrid>"
-     write (35,1) "  <Piece NumberOfPoints=""",nnos,"""  NumberOfCells=""",nel,""">"
-     write (35,5) "    <Points>"
-     write (35,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" format=""ascii"">"
+         open (35,FILE="saida"//trim(ext)//".vtu",STATUS="REPLACE")
      
-     do i=1,nnos
-         write (35,2) y(i,1), y(i,2), y(i,3)
-     end do
+         write (35,5) "<?xml version=""1.0""?>"
+         write (35,5) "<VTKFile type=""UnstructuredGrid"">"
+         write (35,5) "  <UnstructuredGrid>"
+         write (35,1) "  <Piece NumberOfPoints=""",nnos,"""  NumberOfCells=""",nel,""">"
+         write (35,5) "    <Points>"
+         write (35,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" format=""ascii"">"
      
-     write (35,5) "      </DataArray>"
-     write (35,5) "    </Points>"
-     write (35,5) "    <Cells>"
-     write (35,5) "      <DataArray type=""Int32"" Name=""connectivity"" format=""ascii"">"
+         do i=1,nnos
+             write (35,2) (x(i,1)+u(j,i,1)), (y(i,2)+u(j,i,2)), (y(i,3)+u(j,i,3))
+         end do
      
-     do i=1,nel
-         write(35,3) inc(i,1)-1, inc(i,2)-1
-     end do
+         write (35,5) "      </DataArray>"
+         write (35,5) "    </Points>"
+         write (35,5) "    <Cells>"
+         write (35,5) "      <DataArray type=""Int32"" Name=""connectivity"" format=""ascii"">"
+     
+         do i=1,nel
+             write(35,3) inc(i,1)-1, inc(i,2)-1
+         end do
           
-     write (35,5) "      </DataArray>"
-     write (35,5) "      <DataArray type=""Int32"" Name=""offsets"" format=""ascii"">"
+         write (35,5) "      </DataArray>"
+         write (35,5) "      <DataArray type=""Int32"" Name=""offsets"" format=""ascii"">"
      
-     do i=1,nel
-         write(35,4) 2*i
+         do i=1,nel
+             write(35,4) 2*i
+         end do
+     
+         write (35,5) "      </DataArray>"
+         write (35,5) "      <DataArray type=""UInt8"" Name=""types"" format=""ascii"">"
+     
+         do i=1,nel
+             write(35,4) 4
+         end do
+     
+         write (35,5) "      </DataArray>"
+         write (35,5) "    </Cells>"
+         write (35,5) "    <PointData>"
+         write (35,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" Name=""Displacement"" format=""ascii"">"
+     
+         do i=1,nnos
+             write (35,2) u(j,i,1), u(j,i,2), u(j,i,3)
+         end do
+     
+         write (35,5) "      </DataArray>"
+         write (35,5) "    </PointData>"
+         write (35,5) "    <CellData>"
+         write (35,5) "    </CellData>"
+         write (35,5) "  </Piece>"
+         write (35,5) "  </UnstructuredGrid>"
+         write (35,5) "</VTKFile>"
+     
+         close(35)
+     
      end do
-     
-     write (35,5) "      </DataArray>"
-     write (35,5) "      <DataArray type=""UInt8"" Name=""types"" format=""ascii"">"
-     
-     do i=1,nel
-         write(35,4) 4
-     end do
-     
-     write (35,5) "      </DataArray>"
-     write (35,5) "    </Cells>"
-     write (35,5) "    <PointData>"
-     write (35,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" Name=""Displacement"" format=""ascii"">"
-     
-     do i=1,nnos
-         write (35,2) u(nt,i,1), u(nt,i,2), u(nt,i,3)
-     end do
-     
-     write (35,5) "      </DataArray>"
-     write (35,5) "    </PointData>"
-     write (35,5) "    <CellData>"
-     write (35,5) "    </CellData>"
-     write (35,5) "  </Piece>"
-     write (35,5) "  </UnstructuredGrid>"
-     write (35,5) "</VTKFile>"
-     
-     close(35)
      
     end program Trabalho1MEFP
 
+function tostr(i) result(ext)
+    implicit none
+    character(len=15) :: ext
+    integer, intent(in) :: i
+    character(range(i)+2) :: tmp
+    write(tmp,'(i0)') i
+    ext = trim(tmp)
+end function

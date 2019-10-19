@@ -1,5 +1,5 @@
 Num de nós, Num de elem, Num passos, tolerância, Num de forças aplicadas, Num de nós restritos,Tipo de Anlálise (1 - estat, 2 - dinam)
-13,23,10,0.000001,1,13,1
+13,23,25,0.000001,1,13,1
 No, X1, X2, X3
 1,0,0,0
 2,3,0,0
