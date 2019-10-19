@@ -23,8 +23,9 @@
     double precision, allocatable, dimension(:) :: E, s_svk, ue_svk, fn_svk, fint_svk, Fnodais, g, Rnodais, res, xaux, Fnodais_inc
     integer, allocatable, dimension (:,:) :: inc
     double precision, allocatable, dimension(:,:,:) :: u
+    character(len=5):: texto
     
-    open (15,FILE="entrada.txt",STATUS="OLD")
+    open (15,FILE="entrada_cupula.txt",STATUS="OLD")
     read(15,*) !Num de nós, Num de elem, Num passos, tolerância, Num de forças aplicadas, Num de nós restritos, Tipo de Anlálise (1 - estat, 2 - dinam)
     read(15,*) nnos, nel, nt, tol, nnoscar, nnres, tipo
     read(15,*) !No, X1, X2, X3
@@ -34,7 +35,7 @@
     allocate (s_svk(nel), E(nel), ue_svk(nel), fn_svk(nel), fint_svk(3*nnos))
     allocate (HEX(6,6), HEXg(3*nnos,3*nnos))
     allocate (Fnodais(3*nnos), g(3*nnos), ip(3*nnos), xaux(3*nnos), Fnodais_inc(3*nnos))
-    allocate (Rnodais(3*nnos), res(3*nnos))
+    allocate (Rnodais(3*nnres), res(3*nnres))
     
     HEXg=0
     HEX=0
@@ -77,7 +78,7 @@
     
     Rnodais = 0
     
-    read(15,*) !No, dY01 dY02 dY03
+    read(15,*) texto !No, dY01 dY02 dY03
     i=0
     do i=1,nnres
         read(15,*) no, Rnodais(no*3-2), Rnodais(no*3-1), Rnodais(no*3)      
@@ -190,7 +191,7 @@
             end do
             !Condições de contorno
             g = Fnodais - fint_svk
-            do i=1,3*nnos
+            do i=1,3*nnres
                 if (res(i)==1) then
                     HEXg(i,:) = 0
                     HEXg(:,i) = 0
@@ -222,17 +223,134 @@
         
             print*, iter, g(20), err
         
-            if (err<=tol .or. iter>25) then 
+            if (err<=tol .or. iter>100) then 
                 exit
             end if        
         end do ! Newton-Raphson
     
         u(passo,:,:) = y - x
     
-        print*, u(passo,7,2)
+       ! print*, u(passo,7,2)
  
     end do !passos de carga
     
+    ! Escrita de dados para visualização
     
+     open (25,FILE="saida_estatica.vtu",STATUS="REPLACE")
+    
+1     format(A,I0,A,I0,A)
+2     format(F0.6,1x,F0.6,1x,F0.6)     
+3     format(I0,1x,I0) 
+4     format(I0) 
+5     format(A) 
+      
+     write (25,5) "<?xml version=""1.0""?>"
+     write (25,5) "<VTKFile type=""UnstructuredGrid"">"
+     write (25,5) "  <UnstructuredGrid>"
+     write (25,1) "  <Piece NumberOfPoints=""",nnos,"""  NumberOfCells=""",nel,""">"
+     write (25,5) "    <Points>"
+     write (25,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" format=""ascii"">"
+     
+     do i=1,nnos
+         write (25,2) x(i,1), x(i,2), x(i,3)
+     end do
+     
+     write (25,5) "      </DataArray>"
+     write (25,5) "    </Points>"
+     write (25,5) "    <Cells>"
+     write (25,5) "      <DataArray type=""Int32"" Name=""connectivity"" format=""ascii"">"
+     
+     do i=1,nel
+         write(25,3) inc(i,1)-1, inc(i,2)-1
+     end do
+          
+     write (25,5) "      </DataArray>"
+     write (25,5) "      <DataArray type=""Int32"" Name=""offsets"" format=""ascii"">"
+     
+     do i=1,nel
+         write(25,4) 2*i
+     end do
+     
+     write (25,5) "      </DataArray>"
+     write (25,5) "      <DataArray type=""UInt8"" Name=""types"" format=""ascii"">"
+     
+     do i=1,nel
+         write(25,4) 4
+     end do
+     
+     write (25,5) "      </DataArray>"
+     write (25,5) "    </Cells>"
+     write (25,5) "    <PointData>"
+     write (25,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" Name=""Displacement"" format=""ascii"">"
+     
+     do i=1,nnos
+         write (25,2) u(nt,i,1), u(nt,i,2), u(nt,i,3)
+     end do
+     
+     write (25,5) "      </DataArray>"
+     write (25,5) "    </PointData>"
+     write (25,5) "    <CellData>"
+     write (25,5) "    </CellData>"
+     write (25,5) "  </Piece>"
+     write (25,5) "  </UnstructuredGrid>"
+     write (25,5) "</VTKFile>"
+     
+     close(25)
+     
+     open (35,FILE="deformada.vtu",STATUS="REPLACE")
+     
+     write (35,5) "<?xml version=""1.0""?>"
+     write (35,5) "<VTKFile type=""UnstructuredGrid"">"
+     write (35,5) "  <UnstructuredGrid>"
+     write (35,1) "  <Piece NumberOfPoints=""",nnos,"""  NumberOfCells=""",nel,""">"
+     write (35,5) "    <Points>"
+     write (35,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" format=""ascii"">"
+     
+     do i=1,nnos
+         write (35,2) y(i,1), y(i,2), y(i,3)
+     end do
+     
+     write (35,5) "      </DataArray>"
+     write (35,5) "    </Points>"
+     write (35,5) "    <Cells>"
+     write (35,5) "      <DataArray type=""Int32"" Name=""connectivity"" format=""ascii"">"
+     
+     do i=1,nel
+         write(35,3) inc(i,1)-1, inc(i,2)-1
+     end do
+          
+     write (35,5) "      </DataArray>"
+     write (35,5) "      <DataArray type=""Int32"" Name=""offsets"" format=""ascii"">"
+     
+     do i=1,nel
+         write(35,4) 2*i
+     end do
+     
+     write (35,5) "      </DataArray>"
+     write (35,5) "      <DataArray type=""UInt8"" Name=""types"" format=""ascii"">"
+     
+     do i=1,nel
+         write(35,4) 4
+     end do
+     
+     write (35,5) "      </DataArray>"
+     write (35,5) "    </Cells>"
+     write (35,5) "    <PointData>"
+     write (35,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" Name=""Displacement"" format=""ascii"">"
+     
+     do i=1,nnos
+         write (35,2) u(nt,i,1), u(nt,i,2), u(nt,i,3)
+     end do
+     
+     write (35,5) "      </DataArray>"
+     write (35,5) "    </PointData>"
+     write (35,5) "    <CellData>"
+     write (35,5) "    </CellData>"
+     write (35,5) "  </Piece>"
+     write (35,5) "  </UnstructuredGrid>"
+     write (35,5) "</VTKFile>"
+     
+     close(35)
+     
     end program Trabalho1MEFP
 
