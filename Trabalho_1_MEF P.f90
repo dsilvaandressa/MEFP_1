@@ -20,13 +20,13 @@
     double precision :: tol, l0, lf, aux, K_svk, err, normx
     double precision, allocatable, dimension(:,:) :: HEX, HEXg
     double precision, allocatable, dimension(:,:) :: x, y, prop, dy
-    double precision, allocatable, dimension(:) :: E, s_svk, ue_svk, fn_svk, fint_svk, Fnodais, g, Rnodais, res, xaux, Fnodais_inc
+    double precision, allocatable, dimension(:) :: E, s_svk, ue_svk, fn_svk, fint_svk, Fnodais, g, Rnodais, res, xaux, Fnodais_inc, Rnodais_inc
     integer, allocatable, dimension (:,:) :: inc
     double precision, allocatable, dimension(:,:,:) :: u
     character(len=5):: texto
     character(len=3):: ext, tostr
     
-    open (15,FILE="entrada.txt",STATUS="OLD")
+    open (15,FILE="entrada_cupulad.txt",STATUS="OLD")
     read(15,*) !Num de nós, Num de elem, Num passos, tolerância, Num de forças aplicadas, Num de nós restritos, Tipo de Anlálise (1 - estat, 2 - dinam)
     read(15,*) nnos, nel, nt, tol, nnoscar, nnres, tipo
     read(15,*) !No, X1, X2, X3
@@ -36,7 +36,7 @@
     allocate (s_svk(nel), E(nel), ue_svk(nel), fn_svk(nel), fint_svk(3*nnos))
     allocate (HEX(6,6), HEXg(3*nnos,3*nnos))
     allocate (Fnodais(3*nnos), g(3*nnos), ip(3*nnos), xaux(3*nnos), Fnodais_inc(3*nnos))
-    allocate (Rnodais(3*nnres), res(3*nnres))
+    allocate (Rnodais(3*nnos), res(3*nnos), Rnodais_inc(3*nnos))
     
     HEXg=0
     HEX=0
@@ -66,9 +66,12 @@
     read(15,*) !No, Direção, Força
     i=0
     Fnodais = 0
-    do i=1,nnoscar
-        read(15,*) k, dir, Fnodais(3*k-3+dir)
-    end do
+    if (nnoscar>0) then
+        do i=1,nnoscar
+            read(15,*) k, dir, Fnodais(3*k-3+dir)
+        end do
+    else
+    end if
     
     read(15,*) !No, R01 R02 R03
     i=0
@@ -87,20 +90,14 @@
     
         
     close(15)
-    !close(20)
+   
 
     
     !Passos de carga
-    Fnodais_inc = Fnodais/nt !Inicial
-    Fnodais = 0
     
-    do passo=1,nt
+    !Tentativa inicial 
     
-        Fnodais = Fnodais + Fnodais_inc
-        
-        !Tentativa inicial 
         y=x
-    
         do i=1,nnos
             xaux(3*i-2) = x(i,1)
             xaux(3*i-1) = x(i,2)
@@ -108,7 +105,26 @@
         end do
     
         normx = abs(norm2(xaux))
+          
+        Fnodais_inc = Fnodais/nt !Inicial
+        Fnodais = 0
+        Rnodais_inc = Rnodais/nt
     
+    
+    do passo=1,nt
+    
+        Fnodais = Fnodais + Fnodais_inc
+        
+        do i=1,nnos*3
+            if (Rnodais(i)/=0) then
+                if (mod(i,3)==0) then
+                    y(int(i/3),3) = y(int(i/3),3) + Rnodais_inc(i)
+                else
+                    y(int(i/3)+1,mod(i,3)) = y(int(i/3)+1,mod(i,3)) + Rnodais_inc(i)
+                end if
+            end if
+        end do
+               
         i=0
         
     !Início Newton-Raphson
@@ -139,8 +155,7 @@
                     fint_svk(k2*3-2) = fint_svk(k2*3-2) + prop(k,2)*s_svk(k)*(1)*(y(k2,1)-y(k1,1))/l0
                     fint_svk(k2*3-1) = fint_svk(k2*3-1) + prop(k,2)*s_svk(k)*(1)*(y(k2,2)-y(k1,2))/l0
                     fint_svk(k2*3) = fint_svk(k2*3) + prop(k,2)*s_svk(k)*(1)*(y(k2,3)-y(k1,3))/l0
-            
-            
+                   
                 
                 do i=1,3
                         HEX(i,1) = aux*(K_svk*(y(k2,i)-y(k1,i))*(y(k2,1)-y(k1,1)))/(l0*l0) 
@@ -192,12 +207,12 @@
             end do
             !Condições de contorno
             g = Fnodais - fint_svk
-            do i=1,3*nnres
+            do i=1,3*nnos
                 if (res(i)==1) then
                     HEXg(i,:) = 0
                     HEXg(:,i) = 0
                     HEXg(i,i) = 1
-                    g(i) = 0
+                    g(i)=0
                 else
                 end if
             end do
@@ -222,23 +237,30 @@
         
             iter = iter + 1
         
-            !print*, iter
+            print*, iter
         
-            if (err<=tol .or. iter>100) then 
+            if (err<=tol) then 
+                exit
+            else if (iter>1000) then
+                print*, "Não convergiu"
                 exit
             end if        
         end do ! Newton-Raphson
+    if (iter>1000) then
+        pause
+        exit
+    end if
     
         u(passo,:,:) = y - x
-    
-       ! print*, u(passo,7,2)
- 
+
     end do !passos de carga
     
+      print*, u(1,13,3)
+      
     ! Escrita de dados para visualização
     
           
-     open (25,FILE="saida0.vtu",STATUS="REPLACE")
+      open (25,FILE="saida0.vtu",STATUS="REPLACE")
     
 1     format(A,I0,A,I0,A)
 2     format(F0.6,1x,F0.6,1x,F0.6)     
