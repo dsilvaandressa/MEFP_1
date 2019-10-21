@@ -26,7 +26,7 @@
     character(len=5):: texto
     character(len=3):: ext, tostr
     
-    open (15,FILE="entrada_cupulad.txt",STATUS="OLD")
+    open (15,FILE="entrada_cupula.txt",STATUS="OLD")
     read(15,*) !Num de nós, Num de elem, Num passos, tolerância, Num de forças aplicadas, Num de nós restritos, Tipo de Anlálise (1 - estat, 2 - dinam)
     read(15,*) nnos, nel, nt, tol, nnoscar, nnres, tipo
     read(15,*) !No, X1, X2, X3
@@ -335,7 +335,7 @@
          write (35,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" format=""ascii"">"
      
          do i=1,nnos
-             write (35,2) (x(i,1)+u(j,i,1)), (y(i,2)+u(j,i,2)), (y(i,3)+u(j,i,3))
+             write (35,2) (x(i,1)+u(j,i,1)), (x(i,2)+u(j,i,2)), (x(i,3)+u(j,i,3))
          end do
      
          write (35,5) "      </DataArray>"
