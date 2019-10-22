@@ -258,6 +258,19 @@
       print*, u(1,13,3)
       
     ! Escrita de dados para visualização
+      
+6       format(I0,A,I0)      
+7       format(F15.10,A,F15.10)      
+      open (45,FILE="deslocamentos.txt",STATUS="REPLACE")
+      write (45,6) 11,",", 13
+      do j=1,nt
+          !write (45,*) "passo", j
+          !do i=1,nnos
+             write (45,7) u(j,11,3),",", u(j,13,3)
+          !end do
+      end do
+      
+      close(45)
     
           
       open (25,FILE="saida0.vtu",STATUS="REPLACE")
