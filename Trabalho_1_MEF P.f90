@@ -8,7 +8,6 @@
 !
 !  PROGRAM: Trabalho1MEFP
 !
-!  PURPOSE:  Entry point for the console application.
 !
 !****************************************************************************
 
@@ -22,7 +21,7 @@
     double precision, allocatable, dimension(:,:) :: x, y, prop, dy
     double precision, allocatable, dimension(:) :: E, s_svk, ue_svk, fn_svk, fint_svk, Fnodais, g, Rnodais, res, xaux, Fnodais_inc, Rnodais_inc
     integer, allocatable, dimension (:,:) :: inc
-    double precision, allocatable, dimension(:,:,:) :: u
+    double precision, allocatable, dimension(:,:,:) :: u, Rint
     character(len=5):: texto
     character(len=3):: ext, tostr
     
@@ -31,7 +30,7 @@
     read(15,*) nnos, nel, nt, tol, nnoscar, nnres, tipo
     read(15,*) !No, X1, X2, X3
 
-    allocate (x(nnos,3), y(nnos,3), prop(nel,2), dy(nnos,3), u(nt,nnos,3))
+    allocate (x(nnos,3), y(nnos,3), prop(nel,2), dy(nnos,3), u(nt,nnos,3), Rint(nt,nnos,3))
     allocate (inc(nel,2))
     allocate (s_svk(nel), E(nel), ue_svk(nel), fn_svk(nel), fint_svk(3*nnos))
     allocate (HEX(6,6), HEXg(3*nnos,3*nnos))
@@ -252,25 +251,61 @@
     end if
     
         u(passo,:,:) = y - x
-
+        
+        fint_svk=0
+        
+            do j=1,nel
+        
+                k1=inc(j,1)
+                k2=inc(j,2)
+        
+                l0=((x(k1,1)-x(k2,1))*(x(k1,1)-x(k2,1)) + (x(k1,2)-x(k2,2))*(x(k1,2)-x(k2,2)) + (x(k1,3)-x(k2,3))*(x(k1,3)-x(k2,3)))**0.5
+                lf=((y(k1,1)-y(k2,1))*(y(k1,1)-y(k2,1)) + (y(k1,2)-y(k2,2))*(y(k1,2)-y(k2,2)) + (y(k1,3)-y(k2,3))*(y(k1,3)-y(k2,3)))**0.5
+                
+                K_svk = prop(j,1)
+                s_svk(j) = (((lf*lf)/(l0*l0))-1)*0.5*prop(j,1)
+        
+                aux = (prop(j,2)/l0)   
+            
+                !Forças internas 
+                    fint_svk(k1*3-2) =  fint_svk(k1*3-2) + prop(j,2)*s_svk(j)*(-1)*(y(k2,1)-y(k1,1))/l0
+                    fint_svk(k1*3-1) = fint_svk(k1*3-1) + prop(j,2)*s_svk(j)*(-1)*(y(k2,2)-y(k1,2))/l0
+                    fint_svk(k1*3) = fint_svk(k1*3) + prop(j,2)*s_svk(j)*(-1)*(y(k2,3)-y(k1,3))/l0
+            
+                    fint_svk(k2*3-2) = fint_svk(k2*3-2) + prop(j,2)*s_svk(j)*(1)*(y(k2,1)-y(k1,1))/l0
+                    fint_svk(k2*3-1) = fint_svk(k2*3-1) + prop(j,2)*s_svk(j)*(1)*(y(k2,2)-y(k1,2))/l0
+                    fint_svk(k2*3) = fint_svk(k2*3) + prop(j,2)*s_svk(j)*(1)*(y(k2,3)-y(k1,3))/l0
+                    
+            end do
+                    
+            do j=1,nnos
+                Rint(passo,j,1) = -fint_svk(j*3-2)
+                Rint(passo,j,2) = -fint_svk(j*3-1)
+                Rint(passo,j,3) = -fint_svk(j*3)
+            end do
+     
     end do !passos de carga
     
-      print*, u(1,13,3)
+      print*, u(nt,13,3), Rint(nt,13,3)
       
     ! Escrita de dados para visualização
       
 6       format(I0,A,I0)      
 7       format(F15.10,A,F15.10)      
       open (45,FILE="deslocamentos.txt",STATUS="REPLACE")
+      open (55,FILE="forcas.txt",STATUS="REPLACE")
       write (45,6) 11,",", 13
+      write (55,6) 11,",", 13
       do j=1,nt
           !write (45,*) "passo", j
           !do i=1,nnos
              write (45,7) u(j,11,3),",", u(j,13,3)
+             write (55,7) Rint(j,11,3),",", Rint(j,13,3)
           !end do
       end do
       
       close(45)
+      close(55)
     
           
       open (25,FILE="saida0.vtu",STATUS="REPLACE")
@@ -321,7 +356,7 @@
      write (25,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" Name=""Displacement"" format=""ascii"">"
      
      do i=1,nnos
-         write (25,2) u(nt,i,1), u(nt,i,2), u(nt,i,3)
+         write (25,2) 0, 0, 0
      end do
      
      write (25,5) "      </DataArray>"
