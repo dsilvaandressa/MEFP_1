@@ -25,7 +25,7 @@
     character(len=5):: texto
     character(len=3):: ext, tostr
     
-    open (15,FILE="entrada_cupula.txt",STATUS="OLD")
+    open (15,FILE="entrada_mises.txt",STATUS="OLD")
     read(15,*) !Num de nós, Num de elem, Num passos, tolerância, Num de forças aplicadas, Num de nós restritos, Tipo de Anlálise (1 - estat, 2 - dinam)
     read(15,*) nnos, nel, nt, tol, nnoscar, nnres, tipo
     read(15,*) !No, X1, X2, X3
@@ -236,7 +236,7 @@
         
             iter = iter + 1
         
-            print*, iter
+            !print*, iter
         
             if (err<=tol) then 
                 exit
@@ -286,12 +286,12 @@
      
     end do !passos de carga
     
-      print*, u(nt,13,3), Rint(nt,13,3)
+      !print*, u(nt,13,3), Rint(nt,13,3)
       
     ! Escrita de dados para visualização
       
 6       format(I0,A,I0)      
-7       format(F15.10,A,F15.10)      
+7       format(F19.10,A,F19.10)      
       open (45,FILE="deslocamentos.txt",STATUS="REPLACE")
       open (55,FILE="forcas.txt",STATUS="REPLACE")
       write (45,6) 11,",", 13
@@ -299,8 +299,8 @@
       do j=1,nt
           !write (45,*) "passo", j
           !do i=1,nnos
-             write (45,7) u(j,11,3),",", u(j,13,3)
-             write (55,7) Rint(j,11,3),",", Rint(j,13,3)
+             write (45,7) u(j,3,2)!,",", u(j,13,3)
+             write (55,7) Rint(j,3,2)!,",", Rint(j,13,3)
           !end do
       end do
       
@@ -360,7 +360,16 @@
      end do
      
      write (25,5) "      </DataArray>"
+
+     write (25,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" Name=""Reactions"" format=""ascii"">"
+     
+     do i=1,nnos
+         write (25,2) 0, 0, 0
+     end do
+     
+     write (25,5) "      </DataArray>"
      write (25,5) "    </PointData>"
+     
      write (25,5) "    <CellData>"
      write (25,5) "    </CellData>"
      write (25,5) "  </Piece>"
@@ -419,7 +428,16 @@
          end do
      
          write (35,5) "      </DataArray>"
+        
+         write (35,5) "      <DataArray type=""Float64"" NumberOfComponents=""3"" Name=""Reactions"" format=""ascii"">"
+     
+         do i=1,nnos
+             write (35,2) Rint(j,i,1), Rint(j,i,2), Rint(j,i,3)
+         end do
+     
+         write (35,5) "      </DataArray>"
          write (35,5) "    </PointData>"
+     
          write (35,5) "    <CellData>"
          write (35,5) "    </CellData>"
          write (35,5) "  </Piece>"
